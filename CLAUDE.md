@@ -16,22 +16,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Install dependencies
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 
 # Initialize the database
-python src/collect/db.py
+python3 src/collect/db.py
 
 # Backfill from Opening Day to today
-python src/collect/gumbo.py
+PYTHONPATH=src/collect python3 src/collect/gumbo.py
 
 # Pull today's Savant leaderboard snapshot
-python src/collect/savant.py
+PYTHONPATH=src/collect python3 src/collect/savant.py
 
 # Run the daily job (GUMBO yesterday + Savant leaderboard)
-python src/jobs/daily.py
+PYTHONPATH=src/collect python3 src/jobs/daily.py
 
 # Backfill a specific date range
-python src/collect/gumbo.py 2026-03-26 2026-04-15
+PYTHONPATH=src/collect python3 src/collect/gumbo.py 2026-03-26 2026-04-15
 ```
 
 ## Data Sources
@@ -61,8 +61,15 @@ Three tables in `data/abs.duckdb`:
 0 8 * * * cd /path/to/abs-pro && python src/jobs/daily.py >> logs/daily.log 2>&1
 ```
 
+## Safety
+
+- **Never drop or truncate tables** without explicit user confirmation — the DB is the source of truth and backfilling is time-consuming
+- **Rate limit API calls** — add `time.sleep()` between requests when iterating over many games; the MLB Stats API and Baseball Savant are not metered but can throttle aggressive scrapers
+- **R analysis scripts are the user's domain** — do not modify or generate analysis code unless explicitly asked
+- **Confirm before any destructive operation** — deleting data, resetting the DB, or force-pushing git
+
 ## Notes
 
-- `src/collect/db.py` uses `INSERT OR IGNORE` so reruns are safe
+- All inserts use DuckDB's `ON CONFLICT DO NOTHING` — reruns are safe
 - The `games` table acts as a collection log — a game present there won't be re-fetched
 - pybaseball PR #506 adds `statcast_abs()` wrapping the Savant endpoint; once merged it can replace the manual CSV fetch in `savant.py`
