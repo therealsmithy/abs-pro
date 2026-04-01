@@ -1,0 +1,6 @@
+requests
+pandas
+duckdb
+pybaseball
+schedule
+python-dotenv

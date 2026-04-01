@@ -1,0 +1,8 @@
+.DS_Store
+data/*.duckdb
+data/raw/
+data/processed/
+logs/
+__pycache__/
+*.pyc
+.env
