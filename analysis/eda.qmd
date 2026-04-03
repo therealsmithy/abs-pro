@@ -1,0 +1,95 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+# Exploratory Data Analysis 
+
+The aim of this notebook is to take a first look into ABS data and see how teams have been using it early on this season. 
+
+```{python}
+#| include: false
+from datetime import datetime
+datetime.today().strftime('The last time that this notebook was ran was %m-%d-%Y')
+```
+
+## Library Load
+
+```{r}
+library(duckdb)
+library(magrittr)
+library(dplyr)
+library(tidyr)
+library(knitr)
+library(here)
+library(gt)
+library(ggplot2)
+```
+
+## Data Load
+
+```{r}
+# Connect to the database
+con <- dbConnect(duckdb(), here('data/abs.duckdb'), read_only = TRUE)
+
+# Pull all challenges
+challenges <- dbGetQuery(con, '
+    SELECT * 
+    FROM abs_challenges
+    ')
+```
+
+While a lot of the data is fairly intuitive, the indexes are worth explaining. Each row in the data represents a single pitch, and the indexes are as follows:
+
+- at_bat_index - which at-bat within that game (0-based)
+- pitch_index - which pitch within that at-bat (0-based)
+
+There is also a fair amount of data on pitch location, which will not be explored too much here, but will definitely be cool to visualize in later analysis.
+
+## Quick Stats
+
+```{r}
+# Challenge outcomes
+challenge_outcomes <- challenges %>% 
+    group_by(is_overturned) %>% 
+    summarise(count = n()) %>% 
+    mutate(percent = count / sum(count) * 100)
+
+success_rate <- challenge_outcomes %>% 
+    filter(is_overturned == TRUE) %>% 
+    pull(percent)
+```
+
+In the early days of the season, ABS challenges have been succesful `r round(success_rate, 2)`% of the time. It will be interesting to see how this changes as the season goes on as teams and umpires get more used to the system.
+
+```{r}
+# Check batter, pitcher, and catcher distribution
+challenges <- challenges %>% 
+    mutate(challenger_position = case_when(
+        challenger_id == batter_id ~ "batter",
+        challenger_id == pitcher_id ~ "pitcher",
+        TRUE ~ "catcher"
+    ))
+
+# Group by challenger position and outcome
+challenge_outcomes_by_position <- challenges %>% 
+    group_by(challenger_position, is_overturned) %>% 
+    summarise(count = n()) %>% 
+    group_by(challenger_position) %>% 
+    mutate(percent = count / sum(count) * 100)
+```
+
+The distribution of challenges by position is as follows:
+
+```{r}
+ challenge_outcomes_by_position %>% 
+    filter(is_overturned == TRUE) %>%
+    select(challenger_position, percent) %>% 
+    mutate(percent = paste0(round(percent, 1), '%')) %>%
+    rename(Position = challenger_position, `Success Rate` = percent) %>% 
+    kable(align = 'c')
+```
+
+While this is still a small sample size, it seems that batters have been the most succesful at challenging calls, followed by catchers, and finally pitchers. Pitchers have the least total challenges, which is not so unsurprising. 
+
+## Visualization
+
