@@ -93,3 +93,39 @@ While this is still a small sample size, it seems that batters have been the mos
 
 ## Visualization
 
+```{r}
+# Distribution of challenges by pitch index
+ggplot(challenges, aes(x = pitch_index, fill = challenger_position)) +
+    geom_histogram(binwidth = 1, color = 'black', position = 'stack') +
+    labs(title = 'Distribution of Challenges by Pitch Index',
+         x = 'Pitch Index (0-based)',
+         y = 'Count of Challenges',
+         fill = 'Challenger Position') +
+    scale_fill_brewer(palette = 'Set2') +
+    theme_minimal()
+```
+
+```{r}
+# Distribution of challenges by inning
+ggplot(challenges, aes(x = inning, fill = challenger_position)) +
+    geom_histogram(binwidth = 1, color = 'black', position = 'stack') +
+    labs(title = 'Distribution of Challenges by Inning',
+         x = 'Inning',
+         y = 'Count of Challenges',
+         fill = 'Challenger Position') +
+    scale_fill_brewer(palette = 'Set2') +
+    theme_minimal()
+```
+
+```{r}
+# Distribution of challenges by at-bat index
+ggplot(challenges, aes(x = at_bat_index, fill = challenger_position)) +
+    geom_histogram(binwidth = 1, color = 'black', position = 'stack') +
+    labs(title = 'Distribution of Challenges by At-Bat Index',
+         x = 'At-Bat Index (0-based)',
+         y = 'Count of Challenges',
+         fill = 'Challenger Position') +
+    scale_fill_brewer(palette = 'Set2') +
+    theme_minimal()
+```
+
