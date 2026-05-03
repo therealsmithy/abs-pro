@@ -89,7 +89,7 @@ The distribution of challenges by position is as follows:
     kable(align = 'c')
 ```
 
-While this is still a small sample size, it seems that batters have been the most succesful at challenging calls, followed by catchers, and finally pitchers. Pitchers have the least total challenges, which is not so unsurprising. 
+While this is still a small sample size, it seems that catchers have been the most succesful at challenging calls, followed by batters, and finally pitchers. Pitchers have the least total challenges, which is not so unsurprising. 
 
 ## Visualization
 

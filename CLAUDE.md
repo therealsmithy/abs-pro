@@ -58,7 +58,7 @@ Three tables in `data/abs.duckdb`:
 
 ```
 # Daily at 8am — run from project root
-0 8 * * * cd /path/to/abs-pro && python src/jobs/daily.py >> logs/daily.log 2>&1
+0 8 * * * cd /Users/liamsmith/projects/abs-pro && python3 src/jobs/daily.py >> logs/daily.log 2>&1
 ```
 
 ## Safety
