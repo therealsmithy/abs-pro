@@ -44,20 +44,40 @@ def get_challenges(game_pk: int) -> list[dict]:
     data = r.json()
 
     rows = []
+    away_score = 0
+    home_score = 0
+
     for play in data.get("allPlays", []):
         ab_index = play["atBatIndex"]
         inning = play["about"]["inning"]
         half = play["about"]["halfInning"]
         batter = play["matchup"]["batter"]
         pitcher = play["matchup"]["pitcher"]
+        bat_side = play["matchup"].get("batSide", {}).get("code")
+        pitch_hand = play["matchup"].get("pitchHand", {}).get("code")
+
+        # Base runners at start of at-bat (runners with a non-null start base)
+        runner_starts = {
+            r["movement"]["start"]
+            for r in play.get("runners", [])
+            if r.get("movement", {}).get("start")
+        }
+        on_first  = "1B" in runner_starts
+        on_second = "2B" in runner_starts
+        on_third  = "3B" in runner_starts
+
+        # Score at start of this at-bat
+        ab_away_score = away_score
+        ab_home_score = home_score
 
         for event in play.get("playEvents", []):
             if event.get("type") != "pitch":
                 continue
             review = event.get("reviewDetails")
-            if not review:
+            if not review or review.get("reviewType") != "MJ":
                 continue
 
+            count = event.get("count", {})
             pd_ = event.get("pitchData", {})
             coords = pd_.get("coordinates", {})
             rows.append({
@@ -70,6 +90,16 @@ def get_challenges(game_pk: int) -> list[dict]:
                 "batter_name": batter.get("fullName"),
                 "pitcher_id": pitcher.get("id"),
                 "pitcher_name": pitcher.get("fullName"),
+                "bat_side": bat_side,
+                "pitch_hand": pitch_hand,
+                "balls": count.get("balls"),
+                "strikes": count.get("strikes"),
+                "outs": count.get("outs"),
+                "away_score": ab_away_score,
+                "home_score": ab_home_score,
+                "on_first": on_first,
+                "on_second": on_second,
+                "on_third": on_third,
                 "challenging_team": review.get("challengeTeamId"),
                 "challenger_id": review.get("player", {}).get("id"),
                 "challenger_name": review.get("player", {}).get("fullName"),
@@ -82,6 +112,11 @@ def get_challenges(game_pk: int) -> list[dict]:
                 "zone": pd_.get("zone"),
                 "pitch_type": event.get("details", {}).get("type", {}).get("description"),
             })
+
+        result = play.get("result", {})
+        away_score = result.get("awayScore", away_score)
+        home_score = result.get("homeScore", home_score)
+
     return rows
 
 
@@ -114,15 +149,21 @@ def collect_range(start: str, end: str):
     if all_challenges:
         col_order = [
             "game_pk", "at_bat_index", "pitch_index", "game_date",
-            "inning", "half_inning", "batter_id", "batter_name",
-            "pitcher_id", "pitcher_name", "challenging_team",
-            "challenger_id", "challenger_name", "original_call",
-            "is_overturned", "px", "pz", "sz_top", "sz_bot", "zone", "pitch_type",
+            "inning", "half_inning",
+            "batter_id", "batter_name", "pitcher_id", "pitcher_name",
+            "bat_side", "pitch_hand",
+            "balls", "strikes", "outs",
+            "away_score", "home_score",
+            "on_first", "on_second", "on_third",
+            "challenging_team", "challenger_id", "challenger_name",
+            "original_call", "is_overturned",
+            "px", "pz", "sz_top", "sz_bot", "zone", "pitch_type",
         ]
         df = pd.DataFrame(all_challenges)[col_order]
-        con.execute("""
-            INSERT INTO abs_challenges
-            SELECT * FROM df
+        cols = ", ".join(col_order)
+        con.execute(f"""
+            INSERT INTO abs_challenges ({cols})
+            SELECT {cols} FROM df
             ON CONFLICT DO NOTHING
         """)
         print(f"Inserted {len(df)} challenge rows.")

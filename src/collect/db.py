@@ -35,6 +35,16 @@ def init_db():
             batter_name       VARCHAR,
             pitcher_id        INTEGER,
             pitcher_name      VARCHAR,
+            bat_side          VARCHAR,
+            pitch_hand        VARCHAR,
+            balls             INTEGER,
+            strikes           INTEGER,
+            outs              INTEGER,
+            away_score        INTEGER,
+            home_score        INTEGER,
+            on_first          BOOLEAN,
+            on_second         BOOLEAN,
+            on_third          BOOLEAN,
             challenging_team  INTEGER,
             challenger_id     INTEGER,
             challenger_name   VARCHAR,
@@ -47,6 +57,48 @@ def init_db():
             zone              INTEGER,
             pitch_type        VARCHAR,
             PRIMARY KEY (game_pk, at_bat_index, pitch_index)
+        )
+    """)
+
+    # Migrate existing databases
+    new_cols = [
+        ("bat_side",   "VARCHAR"),
+        ("pitch_hand", "VARCHAR"),
+        ("balls",      "INTEGER"),
+        ("strikes",    "INTEGER"),
+        ("outs",       "INTEGER"),
+        ("away_score", "INTEGER"),
+        ("home_score", "INTEGER"),
+        ("on_first",   "BOOLEAN"),
+        ("on_second",  "BOOLEAN"),
+        ("on_third",   "BOOLEAN"),
+    ]
+    for col, dtype in new_cols:
+        try:
+            con.execute(f"ALTER TABLE abs_challenges ADD COLUMN IF NOT EXISTS {col} {dtype}")
+        except Exception:
+            pass
+
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS statcast_pitches (
+            game_pk         INTEGER,
+            game_date       DATE,
+            inning          INTEGER,
+            inning_topbot   VARCHAR,
+            at_bat_number   INTEGER,
+            pitch_number    INTEGER,
+            balls           INTEGER,
+            strikes         INTEGER,
+            outs_when_up    INTEGER,
+            on_1b           BOOLEAN,
+            on_2b           BOOLEAN,
+            on_3b           BOOLEAN,
+            bat_score       INTEGER,
+            post_bat_score  INTEGER,
+            type            VARCHAR,
+            events          VARCHAR,
+            description     VARCHAR,
+            PRIMARY KEY (game_pk, at_bat_number, pitch_number)
         )
     """)
 
